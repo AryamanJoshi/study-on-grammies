@@ -1,0 +1,128 @@
+---
+title: "top10s"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# This document sets up our table that involves the top Billboard songs from the years 2010-2019 and the corresponding spotify data. In this chunk we loaded in various packages to clean the data
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(stringr)
+library(rvest)
+library(httr)
+library(spotifyr)
+library(dplyr)
+library(plotly)
+library(googlesheets4)
+```
+
+
+```{r}
+# read in the data set from our project folder
+top10s <- read_csv("music_data/top10s.csv")
+top10s
+```
+
+
+## Cleaning Up the Genre Category
+```{r}
+# renamed the genre categories and combined the least frequent ones into an "other" category to find the most frequent genre within the popular songs
+
+top10s <-top10s %>%
+  separate((`top genre`), c("variable","genre"), extra='merge')
+
+other <-c("complextro","downtempo","brostep","electro","electronic","escape","folk-pop","hollywood","house","irish","permanent","neo","metropolis","tropical")
+top10s$genre[top10s$variable %in% other]  <- 'Other'
+top10s$genre[top10s$variable =='hip']  <- 'hip hop'
+top10s$genre[top10s$variable =='latin']  <- 'latin'
+top10s$genre[top10s$variable =='boy']  <- 'pop'
+top10s$genre[top10s$variable =='french']  <- 'pop'
+top10s$genre[top10s$variable =='electropop']  <- 'pop'
+top10s$genre[top10s$variable =='pop']  <- 'pop'
+top10s$genre[top10s$genre=='contemporary r&b'] <-'r&b'
+top10s$genre[top10s$genre=='room'] <-'Other'
+top10s(top10s$genre)
+
+miss <- colSums(is.na(top10s))
+print(miss[miss>0])
+
+top10s <-na.omit(top10s)
+
+table(top10s$genre)
+```
+
+
+## Scraping Data for Billie Eilish on Spotify
+```{r}
+Sys.setenv(SPOTIFY_CLIENT_ID = '7146273e81e047be9f0bf7465f96a768')
+Sys.setenv(SPOTIFY_CLIENT_SECRET = '22a02478c98346dba8783d6f1d474808')
+
+# Personal tokens provided by Spotify.
+access_token <- get_spotify_access_token()
+access_token
+
+# Getting Spotify's audio information for Billie Eilish (danceability, energy, etc.).
+billie <- get_artist_audio_features("billie eilish")
+
+# Removing colums that we will not be analyzing. 
+billie_tidy <- billie[-c(1:6, 8, 11, 13, 16, 20:25, 27:29, 31, 33:35, 37:39)]
+
+# Filtering out albums that we will not be using and rearranging the columns to match the Spotify 2010-2019 dataset.
+billie_eilish <- billie_tidy %>%
+  as_tibble() %>%
+  filter(album_name != "Happier Than Ever") %>%
+  distinct() %>%
+  select(track_number, track_name, tempo, energy, danceability, loudness, liveness, valence, duration_ms, acousticness, speechiness, album_name, album_release_year)
+
+# Changing the variables' values to be consistent with the 2010-2019 dataset.
+billie_eilish <- billie_eilish %>%
+  mutate(danceability = danceability * 100) %>%
+  mutate(energy = energy * 100) %>%
+  mutate(speechiness = speechiness * 100) %>%
+  mutate(acousticness = acousticness * 100) %>%
+  mutate(liveness = liveness * 100) %>%
+  mutate(valence = valence * 100) %>%
+  mutate(duration_ms = duration_ms / 1000) %>%
+    rename(duration = duration_ms)
+
+write_csv(billie_eilish, "music_data/billie_eilish.csv")
+```
+
+# Scraping Billie Eilish lyrics from Google Sheet
+```{r}
+# the Spotify read lyrics function was not working, so we put the lyrics in a Google sheet and read into a csv file called "eilish_lyrics"
+eilish_lyrics <- read_csv("music_data/eilish_lyrics.csv")
+```
+
+# Finding the Correlations for Spotify Data ("Compare Two Variables")
+```{r}
+top10s_correlation <- top10s[-c(1:5)]
+
+top10s_correlation2 <- round(cor(top10s_correlation),
+  digits = 2)
+
+top10s_correlation2
+```
+
+# Finding the Correlations for 2019 Spotify Data ("Compare Variables of Top 2019 Songs")
+```{r}
+top10s_correlation_19 <- top10s[-c(1:4)] %>% filter(year == "2019")
+
+top10s_2019_corr <- round(cor(top10s_correlation_19),
+  digits = 2)
+
+top10s_2019_corr
+```
+
+# Finding the Correlations for Billie Eilish ("Compare Variables of Top 2019 Songs")
+```{r}
+billie_correlation <- billie_eilish[-c(1:2, 12:13)]
+
+billie_correlation2 <- round(cor(billie_correlation),
+  digits = 2)
+
+billie_correlation2
+```

@@ -1,0 +1,133 @@
+---
+title: "Analysis of Popular Music Trends"
+author: "Anna Brown and Rachel Stumpf"
+date: "12/9/21"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(spotifyr)
+library(ggplot2)
+top10s <- read_csv("~/Mscs 264 F21/Project/Anna_Rachel/top10s.csv")
+library(shinythemes)
+library(wordcloud2)
+library(wordcloud)
+library(plotly)
+library(dplyr)
+library(rsconnect)
+```
+
+## Comparing Two Variables 
+```{r, eval=FALSE}
+compare_variables <- fluidPage()
+  titlePanel("Compare Variables"),
+  inputPanel(
+    selectInput(inputId = "compare1", label = "y-axis labels",
+                choices = c("Top Genre" = "`top genre`",
+                            "Beats Per Minute (bmp)" = "bpm",
+                            "Energy"= "nrgy",
+                            "Danceability" = "dnce",
+                            "Loudness (dB)" = "dB",
+                            "Liveness" = "live",
+                            "Valence"= "val",
+                            "Duration"= "dur",
+                            "Acousticness"= "acous",
+                            "Speechiness" = "spch",
+                            "Popularity" = "pop",
+                selected = "Top Genre"),
+  selectInput(inputId = "compare2", label = "x-axis labels",
+                choices = c("Top Genre" = "`top genre`",
+                            "Beats Per Minute (bmp)" = "bpm",
+                            "Energy"= "nrgy",
+                            "Danceability" = "dnce",
+                            "Loudness (dB)" = "dB",
+                            "Liveness" = "live",
+                            "Valence"= "val",
+                            "Duration"= "dur",
+                            "Acousticness"= "acous",
+                            "Speechiness" = "spch",
+                            "Popularity" = "pop",
+                selected = "Top Genre"))
+
+renderPlot({
+top10s %>%
+    group_by(year) %>%
+    ggplot(aes_string(y = input$compare1, x = input$compare2, fill = "title")) +
+    geom_point(size = 2) +
+    geom_smooth(method = "lm", se = FALSE, color = "black")
+  })
+```
+
+```{r}
+inputPanel(
+    selectInput(inputId = "compare1", label = "y-axis labels",
+                choices = c("Top Genre" = "`top genre`",
+                            "Beats Per Minute (bmp)" = "bpm",
+                            "Energy"= "nrgy",
+                            "Danceability" = "dnce",
+                            "Loudness (dB)" = "dB",
+                            "Liveness" = "live",
+                            "Valence"= "val",
+                            "Duration"= "dur",
+                            "Acousticness"= "acous",
+                            "Speechiness" = "spch",
+                            "Popularity" = "pop",
+                selected = "Top Genre")),
+  selectInput(inputId = "compare2", label = "x-axis labels",
+                choices = c("Top Genre" = "`top genre`",
+                            "Beats Per Minute (bmp)" = "bpm",
+                            "Energy"= "nrgy",
+                            "Danceability" = "dnce",
+                            "Loudness (dB)" = "dB",
+                            "Liveness" = "live",
+                            "Valence"= "val",
+                            "Duration"= "dur",
+                            "Acousticness"= "acous",
+                            "Speechiness" = "spch",
+                            "Popularity" = "pop",
+                selected = "Top Genre")))
+
+renderPlot({
+      top10s %>%
+        group_by(year) %>%
+        ggplot(mapping = aes(x = input$compare1, 
+                   y = input$compare2, 
+                   fill = "title")) +
+        geom_point(size = 2) +
+        geom_smooth(method = "lm", se = FALSE, color = "black")
+    })
+```
+
+
+
+```{r}
+billie_wordcloud <- fluidPage(
+  titlePanel("Album Word Cloud"),
+  inputPanel(sliderInput("max_num",
+                             label = "Maximum Number of Words",
+                             min = 1,  max = 100,  value = 50))),
+mainPanel(plotOutput(outputId = "billie_wordcloud"))
+
+output$billie_wordcloud <- renderPlot({
+  eilish_lyrics %>%
+    select(Lyrics) %>%
+    unnest_tokens(word, Lyrics, token = "words") %>%
+    anti_join(smart_stopwords, by = "word") %>%
+    count(word) %>%
+    group_by(word) %>%
+    with(wordcloud(words = word, 
+              freq = n, 
+              shape = "circle", 
+              size = 0.25,
+              minSize = 5,
+              max.words=input$max_num, 
+              random.order = FALSE, 
+              rot.per = 0.35, 
+              colors=brewer.pal(8, "Dark2")))
+  })
+```
+

@@ -1,0 +1,206 @@
+---
+title: "lyrics_analysis.Rmd"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(wordcloud)
+library(gutenbergr)
+library(dplyr)
+library(tidytext)
+library(textdata)
+```
+
+```{r}
+eilish_lyrics <- read_csv("music_data/eilish_lyrics.csv")
+eilish_lyrics
+```
+
+```{r}
+smart_stopwords <- get_stopwords(source = "smart")
+bing_sentiments <- get_sentiments(lexicon = "bing")
+```
+
+## Creating the word cloud
+```{r}
+eilish_lyrics %>%
+  select(Lyrics) %>%
+  unnest_tokens(word, Lyrics, token = "words") %>%
+  anti_join(smart_stopwords, by = "word") %>%
+  count(word, sort = TRUE) %>%
+  group_by(word) %>%
+  with(wordcloud(words = word, freq = n, max.words = 100, 
+                random.order = FALSE, rot.per = 0.35, colors=brewer.pal(8, "Dark2")))
+```
+
+
+## This facet wraps the negative and positive words in lyrics in the album as a whole
+
+```{r}
+eilish_lyrics %>%
+  select(Lyrics) %>%
+  unnest_tokens(word, Lyrics, token = "words") %>%
+  inner_join(bing_sentiments) %>%
+  anti_join(smart_stopwords, by = "word") %>%
+  count(sentiment, word, sort = TRUE) %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>%
+  ungroup %>%
+  ggplot(aes(x = fct_reorder(word, n), y = n, fill = sentiment)) +
+    geom_col(show.legend = FALSE) +  
+    coord_flip() +
+    facet_wrap(~ sentiment, scales = "free_y") + 
+    labs(title = "Negative vs. Positive Words in Lyrics", 
+       x = "Word",
+       y = "Frequency of Word") +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+## This selects the song "bad guy" and finds the top positive and negative words according to frequency and facet plots it
+```{r}
+eilish_lyrics %>%
+  filter(track_n == "2") %>%
+  select(Lyrics) %>%
+  unnest_tokens(word, Lyrics, token = "words") %>%
+  inner_join(bing_sentiments) %>%
+  anti_join(smart_stopwords, by = "word") %>%
+  count(sentiment, word, sort = TRUE) %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>%
+  ungroup %>%
+  ggplot(aes(x = fct_reorder(word, n), y = n, fill = sentiment)) +
+    geom_col(show.legend = FALSE) +  
+    coord_flip() +
+    facet_wrap(~ sentiment, scales = "free_y") + 
+    labs(title = "Negative vs. Positive Words in Lyrics", 
+       x = "Word",
+       y = "Frequency of Word") +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r}
+eilish_lyrics_new <- eilish_lyrics %>%
+  select(Lyrics) %>%
+  unnest_tokens(word, Lyrics, token = "words") %>%
+  inner_join(bing_sentiments) %>%
+  anti_join(smart_stopwords, by = "word") %>%
+  count(sentiment, word, sort = TRUE) %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>%
+  ungroup()
+```
+
+```{r}
+length(eilish_lyrics)
+eilish_lyrics_expanded <- eilish_lyrics %>%
+  select(Lyrics) %>%
+  unnest_tokens(word, Lyrics, token = "words") %>%
+  inner_join(bing_sentiments) %>%
+  anti_join(smart_stopwords, by = "word")
+
+eilish_lyrics_expanded %>%
+  count(sentiment, word, sort = TRUE) %>%
+  group_by(sentiment, word, n) %>%
+  summarise(prop = n/(count(eilish_lyrics_expanded))) %>%
+  arrange(desc(prop$n)) %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>%
+  ungroup %>%
+  ggplot(aes(x = fct_reorder(word, prop$n), 
+             y = prop$n, 
+             fill = sentiment)) +
+    geom_col(show.legend = FALSE) +  
+    coord_flip() +
+    facet_wrap(~ sentiment, scales = "free_y") + 
+    labs(title = "Negative vs. Positive Words in Lyrics", 
+       x = "Word",
+       y = "Proportion of Word Appearance") +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+
+```{r}
+eilish_lyrics %>%
+  filter(track_n == "2") %>%
+  select(Lyrics) %>%
+  unnest_tokens(word, Lyrics, token = "words") %>%
+  inner_join(bing_sentiments) %>%
+  anti_join(smart_stopwords, by = "word") %>%
+  count(sentiment, word, sort = TRUE) %>%
+  group_by(sentiment, word, n) %>%
+  summarise(prop = n/(count(eilish_lyrics %>%
+                            filter(track_n == "2") %>%
+                            select(Lyrics) %>%
+                            unnest_tokens(word, Lyrics, token = "words") %>%
+                            inner_join(bing_sentiments) %>%
+                            anti_join(smart_stopwords, by = "word")))) %>%
+  arrange(desc(prop$n)) %>%
+  group_by(sentiment) %>%
+  slice_max(n, n = 10) %>%
+  ungroup() %>%
+  ggplot(aes(x = fct_reorder(word, prop$n), y = prop$n, fill = sentiment)) +
+    geom_col(show.legend = FALSE) +  
+    coord_flip() +
+    facet_wrap(~ sentiment, scales = "free_y") + 
+    labs(title = "Negative vs. Positive Words in Song Lyrics", 
+       x = "Word",
+       y = "Proportion of Word Frequency") +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+eilish_lyrics_expanded %>%
+             group_by(sentiment) %>%
+             count(sentiment) %>%
+             summarise(prop = n/count(eilish_lyrics_expanded)) %>%
+  ggplot(mapping = aes(x="sentiment", 
+             y=prop$n,
+             fill=c("negative", "positive"))) +
+  geom_bar(stat="identity", width=1, color = "white") +
+  coord_polar("y", start=0) +
+  theme_void() +
+  labs(fill = "Sentiment")
+```
+
+```{r}
+eilish_lyrics %>%
+    filter(track_n == "2") %>%
+    select(Lyrics) %>%
+    unnest_tokens(word, Lyrics, token = "words") %>%
+    inner_join(bing_sentiments) %>%
+    anti_join(smart_stopwords, by = "word") %>%
+             group_by(sentiment) %>%
+             count(sentiment) %>%
+             summarise(prop = n / (count(eilish_lyrics %>%
+                            filter(track_n == "2") %>%
+                            select(Lyrics) %>%
+                            unnest_tokens(word, Lyrics, 
+                                          token = "words") %>%
+                            inner_join(bing_sentiments) %>%
+                            anti_join(smart_stopwords, by = "word")))) %>%
+  ggplot(mapping = aes(x = "sentiment", 
+             y = prop$n,
+             fill = c("negative", "positive"))) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  labs(fill = "Sentiment")
+```
+
+```{r}
+
+top10s <- read_csv("Anna_Rachel/top10s.csv")
+top10s %>%
+    group_by(title) %>%
+    ggplot(mapping = aes(y = nrgy, x = dnce, color = year)) +
+    geom_point(size = 2, alpha = 0.75) +
+    geom_smooth(method = "lm", se = FALSE, color = "black")
+```
+

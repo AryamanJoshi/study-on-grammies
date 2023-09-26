@@ -1,0 +1,44 @@
+---
+title: "Eilish_lyrics.Rmd"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# create csv file for the lyrics in Billie Eilish's album, "When we all fall asleep, where do we go?"
+```{r}
+# the genius album function only gave song titles and didn't work with the lyrics, but we were still able to use it to combine with the lyrics sheet to match up the song titles 
+
+billie <- genius_album(artist = "Billie Eilish", album = "When We All Fall Asleep, Where Do We Go?")
+billie
+
+# read in the google sheet with the song titles and cleaned the lyrics
+
+library(googlesheets4)
+lyrics <- read_sheet("https://docs.google.com/spreadsheets/d/1woL-hgvBIDVw9JwEpParuua8O_PRLQOhsz4he7W4YSY/edit?usp=sharing")
+           
+lyrics_clean <- lyrics %>%
+  mutate(Lyrics = str_replace_all(Lyrics, "\"", " "),
+         Lyrics = str_replace_all(Lyrics, "\\\\n", " "),
+         Lyrics = str_replace_all(Lyrics, "\\n", " "),
+         Lyrics = str_replace_all(Lyrics, "\\\\", " "),
+         Lyrics = str_replace_all(Lyrics, "^ ", ""))
+         
+# combined with song titles to make new tibble
+eilish_lyrics <- tibble(billie, lyrics_clean)
+  
+print(eilish_lyrics, width = Inf)
+```
+
+```{r}
+# wrote csv to our project folder and read into our main analysis document
+
+write_csv(eilish_lyrics, "music_data/eilish_lyrics.csv")
+```
+
+
+

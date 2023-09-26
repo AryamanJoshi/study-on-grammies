@@ -1,0 +1,126 @@
+---
+title: "Lyric Analysis Shiny"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+library(tidytext)
+library(textdata)
+```
+
+```{r, include = FALSE}
+smart_stopwords <- get_stopwords(source = "smart")
+bing_sentiments <- get_sentiments(lexicon = "bing")
+```
+
+```{r, include = FALSE}
+eilish_lyrics <- read_csv("music_data/eilish_lyrics.csv")
+```
+
+## Individual Song selection
+```{r, echo = FALSE}
+inputPanel(
+  selectInput("track_n", label = "Song",
+              choices = c("bad guy"= "2", 
+                          "xanny"= "3", 
+                          "you should see me in a crown" = "4",
+                          "all the good girls go to hell" = "5",
+                          "wish you were gay" = "6",
+                          "when the party's over" = "7",
+                          "my strange addiction" = "9",
+                          "bury a friend" = "10",
+                          "ilomilo" = "11",
+                          "listen before i go" = "12",
+                          "i love you" = "13",
+                          "goodbye" = "14")),
+  checkboxInput("type_check2", "Word Frequency or Proportion", value = FALSE))
+
+renderPlot({
+  if(!input$type_check2)
+    eilish_lyrics %>%
+    filter(track_n == input$track_n) %>%
+    select(Lyrics) %>%
+    unnest_tokens(word, Lyrics, token = "words") %>%
+    inner_join(bing_sentiments) %>%
+    anti_join(smart_stopwords, by = "word") %>%
+    count(sentiment, word, sort = TRUE) %>%
+    group_by(sentiment, word, n) %>%
+    arrange(desc(n)) %>%
+    group_by(sentiment) %>%
+    slice_max(n, n = 10) %>%
+    ungroup() %>%
+    ggplot(aes(x = fct_reorder(word, n), 
+               y = n, 
+               fill = sentiment)) +
+      geom_col(show.legend = FALSE) +  
+      coord_flip() +
+      facet_wrap(~ sentiment, scales = "free_y") + 
+      labs(title = "Negative vs. Positive Words in Song Lyrics", 
+            x = "Word",
+            y = "Word Frequency") +
+      theme(plot.title = element_text(hjust = 0.5))
+  else if(input$type_check2)
+    eilish_lyrics %>%
+    filter(track_n == input$track_n) %>%
+    select(Lyrics) %>%
+    unnest_tokens(word, Lyrics, token = "words") %>%
+    inner_join(bing_sentiments) %>%
+    anti_join(smart_stopwords, by = "word") %>%
+    count(sentiment, word, sort = TRUE) %>%
+    group_by(sentiment, word, n) %>%
+    summarise(prop = n/(count(eilish_lyrics %>%
+                            filter(track_n == input$track_n) %>%
+                            select(Lyrics) %>%
+                            unnest_tokens(word, Lyrics, 
+                                          token = "words") %>%
+                            inner_join(bing_sentiments) %>%
+                            anti_join(smart_stopwords, by = "word")))) %>%
+    arrange(desc(prop$n)) %>%
+    group_by(sentiment) %>%
+    slice_max(prop$n, n = 10) %>%
+    ungroup() %>%
+    ggplot(aes(x = fct_reorder(word, prop$n), 
+               y = prop$n, 
+               fill = sentiment)) +
+      geom_col(show.legend = FALSE) +  
+      coord_flip() +
+      facet_wrap(~ sentiment, scales = "free_y") + 
+      labs(title = "Negative vs. Positive Words in Song Lyrics", 
+            x = "Word",
+            y = "Proportion of Word Frequency") +
+      theme(plot.title = element_text(hjust = 0.5))
+})
+```
+
+## Album as a whole
+```{r, echo = FALSE}
+titlePanel("Negative vs. Positive Words in Album Lyrics")
+
+eilish_lyrics_expanded <- eilish_lyrics %>%
+  select(Lyrics) %>%
+  unnest_tokens(word, Lyrics, token = "words") %>%
+  inner_join(bing_sentiments) %>%
+  anti_join(smart_stopwords, by = "word")
+
+renderPlot({eilish_lyrics_expanded %>%
+  count(sentiment, word, sort = TRUE) %>%
+  group_by(sentiment, word, n) %>%
+  summarise(prop = n/(count(eilish_lyrics_expanded))) %>%
+  arrange(desc(prop$n)) %>%
+  group_by(sentiment) %>%
+  slice_max(prop$n, n = 10) %>%
+  ungroup() %>%
+  ggplot(aes(x = fct_reorder(word, prop$n), y = prop$n, fill = sentiment)) +
+    geom_col(show.legend = FALSE) +  
+    coord_flip() +
+    facet_wrap(~ sentiment, scales = "free_y") + 
+    labs(title = "Negative vs. Positive Words in Album Lyrics", 
+       x = "Word",
+       y = "Proportion of Word Appearance in Album") +
+    theme(plot.title = element_text(hjust = 0.5))
+})
+```

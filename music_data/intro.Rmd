@@ -1,0 +1,24 @@
+---
+title: "intro.Rmd"
+output: html_document
+---
+
+
+By: Aryaman Manish Joshi 
+
+## Analysis Goals 
+- The goal of my project was to find trends in the most popular songs from 2010 - 2019 by analyzing a variety of variables and comparing these emerging trends to Billie Eilish's 2019 - 2020 Grammy winning album, “When We All Fall Asleep, Where Do We Go?”.
+- My primary objective was to see if Billie Eilish's music aligned with the most popular songs of the past decade in terms of variables like tempo, energy, danceability, loudness, liveness, valence, duration, acousticness, and speechiness. 
+- In order to do this, I scraped data from Spotify on Billie Eilish's award winning album and utilized a dataset from Kaggle titled "Top Spotify Songs from 2010 - 2019."
+- I then scraped data from Billie Eilish's album and performed a sentiment analysis. 
+- Overall, my main goal was to identify how music trends have changed over the past several years and the extent that music today is following these trends. 
+
+## Sources
+- **Spotifyr**: An R library in R-Studio that allowed me to scrape data about Billie Eilish for a variety of variables.
+
+- **Kaggle**: Contained a dataset with the most popular songs, based on Billboard, separated by year for 2010 - 2019.
+
+- **Genius**: I found the lyrics to every song in the album “When We All Fall Asleep, Where Do We Go?” and copied all of the lyrics into a Google Sheet. I then uploaded that document to R-studio and tidied the data.
+
+- **Official Grammy Website**: I selectively imported all of the data on Grammy winners for 2010 - 2020 in the top 4 categories (e.g., "Album of the Year," "Song of the Year," "Record of the Year," and "Best New Artist") and tidied.
+

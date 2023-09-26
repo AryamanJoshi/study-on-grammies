@@ -1,0 +1,88 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+title: 'speeches.Rmd'
+subtitle: Scraping Data
+output:
+  pdf_document:
+    fig_height: 3
+    fig_width: 4.5
+  html_document: default
+word_document: default
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(rvest)
+```
+
+2017 Adele and Beyonce: https://www.nytimes.com/2017/02/12/arts/music/beyonce-speech-grammys-trump.html
+```{r}
+beyonce <- read_html("https://www.nytimes.com/2017/02/12/arts/music/beyonce-speech-grammys-trump.html")
+
+beyonce_2017 <- html_elements(beyonce, ".etf134l0:nth-child(2) .evys1bk0")
+beyonce_2017
+```
+
+```{r}
+adele <- read_html("https://www.nytimes.com/2017/02/12/arts/music/beyonce-speech-grammys-trump.html")
+
+adele_2017 <- html_elements(adele, ".etf134l0:nth-child(1) .evys1bk0")
+adele_2017
+```
+
+```{r}
+beyonce_2017_vector <- beyonce_2017 %>%
+  str_extract_all(">(.)+<") %>%
+  str_replace_all(">", "") %>%
+  str_replace_all("<", "") %>%
+  str_c(collapse = " ") 
+
+adele_2017_vector <- adele_2017 %>%
+  str_extract_all(">(.)+<") %>%
+  str_replace_all(">", "") %>%
+  str_replace_all("<", "") %>%
+  str_c(collapse = " ")
+```
+
+```{r}
+adele_2017_to_tibble <- as_tibble(cbind(artist = "Adele", year = "2017", speech = adele_2017_vector))
+
+beyonce_2017_to_tibble <- as_tibble(cbind(artist = "Beyonce", year = "2017", speech = beyonce_2017_vector))
+
+tibble <- rbind(beyonce_2017_to_tibble, adele_2017_to_tibble)
+print(tibble, width = Inf)
+```
+
+Billie Eilish 2020/2019
+https://www.rev.com/blog/transcripts/billie-eilish-grammy-acceptance-speech-transcript
+
+```{r}
+eilish <- read_html("https://www.rev.com/blog/transcripts/billie-eilish-grammy-acceptance-speech-transcript")
+
+eilish_2020 <- html_elements(eilish, "#transcription p:nth-child(1)")
+print(eilish_2020, width = Inf)
+```
+
+```{r}
+eilish_2020_vector <- eilish_2020 %>%
+  str_extract_all(">\\n(.)+<") %>%
+  str_replace_all(">", "") %>%
+  str_replace_all("<", "") %>%
+  str_replace("\\n", "")
+
+eilish_2019_to_tibble <- as_tibble(cbind(artist = "Billie Eilish", year = "2019", speech = eilish_2020_vector))
+
+eilish_2019_to_tibble
+write_csv(eilish_2019_to_tibble, "~/Mscs 264 F21/Project/Anna_Rachel/eilish_2019.csv")
+```
+
+```{r}
+tibble <- rbind(beyonce_2017_to_tibble, adele_2017_to_tibble, eilish_2019_to_tibble)
+print(tibble, width = Inf)
+```
+

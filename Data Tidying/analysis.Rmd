@@ -1,0 +1,87 @@
+---
+title: "Graphs.Rmd"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(stringr)
+library(rvest)
+library(httr)
+library(spotifyr)
+library(dplyr)
+library(plotly)
+```
+
+
+```{r}
+most_popular <- top10s %>%
+  filter(year == 2019) %>%
+  arrange(desc(popularity) )%>%
+  group_by(title)
+
+slice_head(most_popular, n = 13)
+most_popular
+```
+
+# Comparing Two Variables (not interactive)
+```{r}
+top10s %>%
+      group_by(year)%>%
+      ggplot(aes(x = dnce, y = nrgy, fill = "title")) +
+      geom_point(size = 2) +
+      geom_smooth(method = "lm", se = FALSE, color = "black") 
+  
+```
+
+
+
+## Just some plots that we were playing around with to see what kind of things we could do with the Spotify (2010-2019) data, not necessarily the plots that we intend to use for the final project
+
+
+## Most Popular Artists in the Past Decade
+```{r}
+most_popular <- top10s %>%
+  arrange(desc(pop) )%>%
+  group_by(artist)
+most_popular
+
+popular_artists <- most_popular%>%
+  count(artist )%>%
+  arrange(desc(n))
+
+head(popular_artists, n=20) %>%
+ggplot(aes(x = reorder(artist, n), y = n)) +
+  geom_col(fill="pink")+
+  coord_flip()+
+  labs(x = "Artist",
+       y = "Frequency",
+       title = "10 Most Popular Artists")
+```
+
+
+## Song Duration Based on Genre
+```{r}
+song_duration <-top10s
+
+ggplot(top10s, aes(x = reorder(genre, dur), y = dur)) +
+  geom_boxplot(fill = "light green") +
+  labs(x = "Artist",
+       y = "Duration",
+       title = "Average Song Duration")
+```
+
+
+## Distribution of Danceability
+```{r}
+danceability_prob <- top10s
+
+ggplot(top10s,aes(x = dnce))+
+  geom_histogram(aes(y=..density..), bins = 40, fill = "skyblue") +
+  stat_function(fun=dnorm, color="black",
+                args=list(mean=mean(top10s$dnce), 
+                          sd=sd(top10s$dnce))) + theme_minimal() + 
+theme(plot.title=element_text(hjust=0.5)) + labs(title="Distribution of Danceability", 
+                                                x=" Danceability", y="Probability")
+```
